@@ -28,6 +28,9 @@
         android:layout_height="wrap_content"
         android:id="@+id/buttonFragment"
         android:layout_weight="1" />
+	<FrameLayout android:id="@+id/frameScanner"
+		android:layout_width="wrap_content"
+		android:layout_height="150dip"/>
     <Button
         android:text="Barcode Generator"
         android:layout_width="match_parent"

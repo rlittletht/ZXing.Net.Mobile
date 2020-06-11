@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using Android.App;
 using ZXing.Mobile;
 using Android.OS;
 
-using Android.App;
+using Android.Support.V4.App;
 using Android.Widget;
 using Android.Content.PM;
+using Android.Provider;
 
 namespace Sample.Android
 {
@@ -41,32 +43,40 @@ namespace Sample.Android
             base.OnPause ();
         }
 
+	    public static void scanCore(ZXingScannerFragment scanFragment, System.Action<ZXing.Result> cbk)
+	    {
+	        var opts = new MobileBarcodeScanningOptions
+	        {
+	            PossibleFormats = new List<ZXing.BarcodeFormat> {
+	                ZXing.BarcodeFormat.QR_CODE
+	            },
+	            CameraResolutionSelector = availableResolutions => {
+
+	                foreach (var ar in availableResolutions)
+	                {
+	                    Console.WriteLine("Resolution: " + ar.Width + "x" + ar.Height);
+	                }
+	                return null;
+	            }
+	        };
+
+	        scanFragment.StartScanning(cbk, opts);
+        }
         void scan ()
         {
-            var opts = new MobileBarcodeScanningOptions {
-                PossibleFormats = new List<ZXing.BarcodeFormat> {
-                    ZXing.BarcodeFormat.QR_CODE
-                },
-                CameraResolutionSelector = availableResolutions => {
+            scanCore(scanFragment, (result) => {
 
-                    foreach (var ar in availableResolutions) {
-                        Console.WriteLine ("Resolution: " + ar.Width + "x" + ar.Height);
+                    // Null result means scanning was cancelled
+                    if (result == null || string.IsNullOrEmpty(result.Text))
+                    {
+                        Toast.MakeText(this, "Scanning Cancelled", ToastLength.Long).Show();
+                        return;
                     }
-                    return null;
+
+                    // Otherwise, proceed with result
+                    RunOnUiThread(() => Toast.MakeText(this, "Scanned: " + result.Text, ToastLength.Short).Show());
                 }
-            };
-
-            scanFragment.StartScanning (result => {
-
-                // Null result means scanning was cancelled
-                if (result == null || string.IsNullOrEmpty (result.Text)) {
-                    Toast.MakeText (this, "Scanning Cancelled", ToastLength.Long).Show ();
-                    return;
-                }
-
-                // Otherwise, proceed with result
-                RunOnUiThread (() => Toast.MakeText (this, "Scanned: " + result.Text, ToastLength.Short).Show ());
-            }, opts);
+                );
         }
 	}
 }

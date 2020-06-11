@@ -6,11 +6,12 @@ using Android.Widget;
 using Android.OS;
 using ZXing;
 using ZXing.Mobile;
+using Android.Support.V7.App;
 
 namespace Sample.Android
 {
-	[Activity (Label = "ZXing.Net.Mobile", MainLauncher = true, Theme="@android:style/Theme.Holo.Light", ConfigurationChanges=ConfigChanges.Orientation|ConfigChanges.KeyboardHidden)]
-	public class Activity1 : Activity
+	[Activity (Label = "ZXing.Net.Mobile", MainLauncher = true, Theme = "@style/AppTheme", ConfigurationChanges = ConfigChanges.Orientation|ConfigChanges.KeyboardHidden)]
+	public class Activity1 : AppCompatActivity
 	{
 		Button buttonScanCustomView;
 		Button buttonScanDefaultView;
@@ -19,19 +20,21 @@ namespace Sample.Android
         Button buttonGenerate;
 
 		MobileBarcodeScanner scanner;
-	
-		protected override void OnCreate (Bundle bundle)
-		{
-			base.OnCreate (bundle);
 
-            // Initialize the scanner first so we can track the current context
+	    protected override void OnCreate(Bundle bundle)
+	    {
+	        base.OnCreate(bundle);
+
+	        // Initialize the scanner first so we can track the current context
+#if no
             MobileBarcodeScanner.Initialize (Application);
+#endif
+	        // Set our view from the "main" layout resource
+	        SetContentView(Resource.Layout.Main);
 
-			// Set our view from the "main" layout resource
-			SetContentView (Resource.Layout.Main);
-
-			//Create a new instance of our Scanner
-			scanner = new MobileBarcodeScanner();
+#if no
+//Create a new instance of our Scanner
+            scanner = new MobileBarcodeScanner();
 
 			buttonScanDefaultView = this.FindViewById<Button>(Resource.Id.buttonScanDefaultView);
 			buttonScanDefaultView.Click += async delegate {
@@ -89,19 +92,44 @@ namespace Sample.Android
 
 				HandleScanResult(result);
 			};
+#endif
+	        buttonFragmentScanner = FindViewById<Button>(Resource.Id.buttonFragment);
+	        buttonFragmentScanner.Click += delegate { StartActivity(typeof(FragmentActivity)); };
 
-			buttonFragmentScanner = FindViewById<Button> (Resource.Id.buttonFragment);
-			buttonFragmentScanner.Click += delegate {
-				StartActivity (typeof (FragmentActivity));	
-			};
+	        scanFragment = new ZXingScannerFragment();
+
+
+	    SupportFragmentManager.BeginTransaction()
+		        .Replace(Resource.Id.frameScanner, scanFragment)
+		        .Commit();
 
             buttonGenerate = FindViewById<Button> (Resource.Id.buttonGenerate);
             buttonGenerate.Click += delegate {
                 StartActivity (typeof (ImageActivity));
             };
 		}
+	    ZXingScannerFragment scanFragment;
 
-		void HandleScanResult (ZXing.Result result)
+        protected override void OnResume()
+	    {
+	        base.OnResume();
+
+	        FragmentActivity.scanCore(scanFragment, (result) =>
+	        {
+
+	            // Null result means scanning was cancelled
+	            if (result == null || string.IsNullOrEmpty(result.Text))
+	            {
+	                Toast.MakeText(this, "Scanning Cancelled", ToastLength.Long).Show();
+	                return;
+	            }
+
+	            // Otherwise, proceed with result
+	            RunOnUiThread(() => Toast.MakeText(this, "Scanned: " + result.Text, ToastLength.Short).Show());
+	        });
+        }
+
+        void HandleScanResult (ZXing.Result result)
 		{
 			string msg = "";
 
